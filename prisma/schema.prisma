@@ -1,0 +1,54 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  idle
+  dropped
+  recovered
+  done
+}
+
+model Symbol {
+  id        String  @id @db.VarChar(16)
+  ticker    String  @unique @db.VarChar(8)
+  name      String?
+  active    Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  DailyStates DailyState[]
+}
+
+model DailyState {
+  id            String   @id @default(cuid())
+  date          Date
+  ticker        String   @db.VarChar(8)
+  referenceClose Float
+  status        Status   @default(idle)
+  dropAt        DateTime?
+  recoverAt     DateTime?
+  dropPrice     Float?
+  recoverPrice  Float?
+
+  Symbol Symbol @relation(fields: [ticker], references: [ticker])
+
+  @@unique([date, ticker])
+  @@index([status])
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  ts        DateTime @default(now())
+  ticker    String   @db.VarChar(8)
+  kind      String   // "drop" | "recovery"
+  price     Float
+  pct       Float
+  payload   Json?
+}
